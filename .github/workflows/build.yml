@@ -1,12 +1,64 @@
-manifest:
-  remotes:
-    - name: darknao
-      url-base: https://github.com/darknao
-  projects:
-    - name: zmk
-      remote: darknao
-      revision: rgb-layer-24.12
-      import: app/west.yml
-  self:
-    path: config
+on: [push, pull_request, workflow_dispatch]
 
+name: Build
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: Build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Cache west modules
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-zephyr-modules
+        with:
+          path: |
+            modules/
+            tools/
+            zephyr/
+            bootloader/
+            zmk/
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('config/west.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+        timeout-minutes: 2
+        continue-on-error: true
+      - name: West Init
+        uses: 'docker://zmkfirmware/zmk-build-arm:stable'
+        id: west-init
+        with:
+          args: 'bash -c "west init -l config && west update"'
+      - name: West Zephyr export
+        uses: 'docker://zmkfirmware/zmk-build-arm:stable'
+        id: west-zephyr-export
+        with:
+          args: 'bash -c "west zephyr-export"'
+      - name: West Build (Glove80 Left)
+        uses: 'docker://zmkfirmware/zmk-build-arm:stable'
+        id: west-build-left
+        with:
+          args: 'bash -c "west build -s zmk/app -b glove80_lh -- -DZMK_CONFIG=\"${GITHUB_WORKSPACE}/config\""'
+      - name: Glove80 Left Kconfig file
+        run: grep -v "^#" build/zephyr/.config | grep -v "^$"
+      - name: Rename left
+        run: cp build/zephyr/zmk.uf2 glove80_left.uf2
+      - name: West Build (Glove80 Right)
+        uses: 'docker://zmkfirmware/zmk-build-arm:stable'
+        id: west-build-right
+        with:
+          args: 'bash -c "west build --pristine -s zmk/app -b glove80_rh -- -DZMK_CONFIG=\"${GITHUB_WORKSPACE}/config\""'
+      - name: Glove80 Right Kconfig file
+        run: grep -v "^#" build/zephyr/.config | grep -v "^$"
+      - name: Rename right
+        run: cp build/zephyr/zmk.uf2 glove80_right.uf2
+      - name: Merge firmware files
+        run: cat glove80_left.uf2 glove80_right.uf2 > glove80.uf2
+      - name: Archive (glove80.uf2)
+        uses: actions/upload-artifact@v4
+        with:
+          name: glove80.uf2
+          path: glove80.uf2

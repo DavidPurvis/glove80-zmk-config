@@ -5,7 +5,7 @@ manifest:
   projects:
     - name: zmk
       remote: darknao
-      revision: darknao/rgb-layer-24.12
+      revision: rgb-layer-24.12
       import: app/west.yml
   self:
     path: config
