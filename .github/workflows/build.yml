@@ -43,8 +43,8 @@ jobs:
         with:
           args: 'bash -c "west build -s zmk/app -b glove80_lh -- -DZMK_CONFIG=\"${GITHUB_WORKSPACE}/config\""'
       - name: Glove80 Left Kconfig file
-        run: cat build/zephyr/.config | grep -v "^#" | grep -v "^$"
-      - name: Rename zmk.uf2
+        run: grep -v "^#" build/zephyr/.config | grep -v "^$"
+      - name: Rename left
         run: cp build/zephyr/zmk.uf2 glove80_left.uf2
       - name: West Build (Glove80 Right)
         uses: 'docker://zmkfirmware/zmk-build-arm:stable'
@@ -52,7 +52,4 @@ jobs:
         with:
           args: 'bash -c "west build --pristine -s zmk/app -b glove80_rh -- -DZMK_CONFIG=\"${GITHUB_WORKSPACE}/config\""'
       - name: Glove80 Right Kconfig file
-        run: cat build/zephyr/.config | grep -v "^#" | grep -v "^$"
-      - name: Rename zmk.uf2
-        run: cp build/zephyr/zmk.uf2 glove80_right.uf2
-      - name: Merge firmware files
+        run: grep -v "^#" build/zephyr/.config |
