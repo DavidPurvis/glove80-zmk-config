@@ -9,8 +9,4 @@ manifest:
       import: app/west.yml
   self:
     path: config
-```
 
-Worth double-checking that the branch actually exists before pushing — you can verify at `https://github.com/darknao/zmk/branches` or with:
-```
-git ls-remote https://github.com/darknao/zmk | grep rgb-layer
